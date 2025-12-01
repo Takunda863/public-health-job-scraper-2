@@ -1,0 +1,295 @@
+import requests
+import time
+from datetime import datetime, timedelta
+import re
+import logging
+
+# Configure logging specifically for the scraper module
+logger = logging.getLogger(__name__)
+
+# Comprehensive list of public health keywords for relevance scoring
+# These help us identify jobs relevant to M&E and public health
+PUBLIC_HEALTH_KEYWORDS = [
+    # Core M&E terms
+    'public health', 'monitoring', 'evaluation', 'm&e', 'data',
+    'strategic information', 'health information', 'health data',
+    
+    # Technical skills and tools
+    'commcare', 'dhis2', 'power bi', 'tableau', 'stata', 'spss', 'r programming',
+    
+    # Research and assessment
+    'survey', 'research', 'impact assessment', 'needs assessment', 'baseline',
+    'indicators', 'kpi', 'performance monitoring',
+    
+    # Health program areas
+    'health program', 'global health', 'health systems', 'epidemiology',
+    'maternal health', 'child health', 'reproductive health',
+    'hiv', 'tb', 'malaria', 'nutrition', 'immunization',
+    
+    # Job titles and roles
+    'm&e officer', 'monitoring officer', 'evaluation specialist',
+    'data manager', 'health informatics', 'information system'
+]
+
+class JobScraper:
+    """
+    Intelligent job scraper for public health monitoring and evaluation positions
+    
+    This class handles:
+    - Data collection from multiple sources
+    - Smart filtering based on public health relevance
+    - Rate limiting and respectful scraping
+    - Error handling and logging
+    """
+    
+    def __init__(self):
+        """
+        Initialize the scraper with proper HTTP session configuration
+        
+        Using requests.Session() allows connection pooling for better performance
+        """
+        self.session = requests.Session()
+        
+        # Set realistic browser headers to avoid being blocked
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json, text/html, application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+        })
+        
+        # Set default timeout to avoid hanging requests
+        self.session.timeout = 30
+        
+        logger.info("JobScraper initialized with proper HTTP session configuration")
+#     def is_recent_job(self, date_text):
+#         """
+#         Determine if a job was posted in the last 24 hours
+#         
+#         This method analyzes date strings from various sources and formats
+#         to identify recent postings
+#         """
+#         if not date_text:
+#             return False
+#         
+#         date_text_lower = str(date_text).lower()
+#         
+#         # Common indicators of recent postings across job boards
+#             recent_indicators = [
+#             'hours ago', 'hour ago', 'today', 'just now',
+#             '1 day ago', 'yesterday', 'last 24 hours'
+#             ]
+#             
+#             # Check for recent indicators in the date text
+#             is_recent = any(indicator in date_text_lower for indicator in recent_indicators)
+#         
+#         # Additional check for specific date formats
+#         try:
+#             # If the date is in ISO format or similar, parse it
+#             if 'T' in date_text:
+                job_date = datetime.fromisoformat(date_text.replace('Z', '+00:00'))
+                time_diff = datetime.now().astimezone() - job_date
+                if time_diff < timedelta(days=1):
+                    is_recent = True
+        except (ValueError, TypeError):
+            # If date parsing fails, rely on text indicators
+            pass
+        
+        return is_recent
+
+    def clean_text(self, text):
+        """
+        Clean and normalize text data
+        
+        Removes extra whitespace, normalizes case, and handles None values
+        """
+        if not text:
+            return ""
+        
+        # Remove extra whitespace and normalize
+        cleaned = ' '.join(str(text).split())
+        return cleaned.strip()
+            def scrape_reliefweb_api(self, search_term, max_jobs=20):
+        """
+        Scrape jobs from ReliefWeb using their official API
+        
+        ReliefWeb is a UN humanitarian information portal that provides
+        a well-structured API for job postings from international organizations
+        
+        API Documentation: https://apidoc.rwlabs.org/
+        """
+        try:
+            logger.info(f"Scraping ReliefWeb API for: '{search_term}'")
+            
+            # ReliefWeb API endpoint for jobs
+            url = "https://api.reliefweb.int/v1/jobs"
+            
+            # API parameters for searching jobs
+            params = {
+                'appname': 'publichealth-scraper',  # Identify our application
+                'query[value]': search_term,        # Search term
+                'limit': max_jobs,                  # Maximum results
+                'preset': 'latest',                 # Get latest jobs first
+                'sort[]': 'date:desc',              # Sort by date descending
+                'fields[include][]': ['title', 'source', 'country', 'date', 'url']
+            }
+            
+            logger.debug(f"Making API request to ReliefWeb with params: {params}")
+            
+            # Make API request with timeout
+            response = self.session.get(url, params=params, timeout=15)
+            response.raise_for_status()  # Raise exception for bad status codes
+            
+            # Parse JSON response
+            data = response.json()
+            jobs = []
+            
+            logger.info(f"ReliefWeb API returned {len(data.get('data', []))} raw results")
+            
+            # Process each job in the API response
+            for item in data.get('data', [])[:max_jobs]:
+                try:
+                    fields = item.get('fields', {})
+                    
+                    # Extract organization name with fallback
+                    org_name = "Unknown Organization"
+                    if fields.get('source'):
+                        org_name = fields['source'][0].get('name', org_name)
+                    
+                    # Extract location information
+                    locations = []
+                    if fields.get('country'):
+                        locations = [loc.get('name', '') for loc in fields['country']]
+                    location = ', '.join(locations) or 'Multiple Locations'
+                    
+                    # Extract posting date with multiple fallbacks
+                    date_posted = "Unknown"
+                    for date_field in ['date', 'created', 'changed']:
+                        if fields.get(date_field):
+                            date_posted = fields[date_field]
+                            break
+                    
+                    # Clean and validate data
+                    title = self.clean_text(fields.get('title', 'No title'))
+                    organization = self.clean_text(org_name)
+                    location = self.clean_text(location)
+                    
+                    # Construct complete job data object
+                    job_data = {
+                        'title': title,
+                        'organization': organization,
+                        'location': location,
+                        'url': f"https://reliefweb.int/job/{item['id']}",
+                        'date_posted': date_posted,
+                        'source': 'reliefweb',
+                        'scraped_at': datetime.now().isoformat(),
+                        'search_term': search_term
+                    }
+                    
+                    # Determine if job is recent
+                    job_data['is_recent'] = self.is_recent_job(date_posted)
+                    jobs.append(job_data)
+                    
+                    logger.debug(f"Processed job: {title[:50]}...")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to process ReliefWeb job item: {e}")
+                    continue
+            
+            logger.info(f"Successfully processed {len(jobs)} jobs from ReliefWeb for '{search_term}'")
+            return jobs
+            
+        except requests.exceptions.Timeout:
+            logger.error(f"ReliefWeb API timeout for '{search_term}'")
+            return []
+        except requests.exceptions.RequestException as e:
+            logger.error(f"ReliefWeb API request failed for '{search_term}': {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error scraping ReliefWeb for '{search_term}': {e}")
+            return []
+                def filter_public_health_jobs(self, jobs):
+        """
+        Intelligent filtering to identify public health M&E relevant positions
+        
+        This method uses keyword matching with relevance scoring to
+        automatically classify jobs based on their relevance to public health M&E
+        
+        Returns both filtered jobs and adds relevance scores to all jobs
+        """
+        if not jobs:
+            logger.info("No jobs to filter")
+            return []
+        
+        filtered_jobs = []
+        
+        for job in jobs:
+            # Combine title and organization for comprehensive keyword analysis
+            job_text = f"{job['title']} {job.get('organization', '')}".lower()
+            
+            # Calculate relevance score based on keyword matches
+            matches = 0
+            for keyword in PUBLIC_HEALTH_KEYWORDS:
+                if keyword in job_text:
+                    matches += 1
+            
+            # Calculate relevance score (0.0 to 1.0)
+            relevance_score = matches / len(PUBLIC_HEALTH_KEYWORDS)
+            
+            # Classify job based on relevance threshold
+            if relevance_score >= 0.2:  # 20% match threshold
+                job['relevance_score'] = round(relevance_score, 2)
+                job['is_public_health'] = True
+                job['matched_keywords'] = matches
+                filtered_jobs.append(job)
+                
+                logger.debug(f"Job '{job['title'][:30]}...' scored {relevance_score:.2f} (ACCEPTED)")
+            else:
+                job['relevance_score'] = round(relevance_score, 2)
+                job['is_public_health'] = False
+                job['matched_keywords'] = matches
+                
+                logger.debug(f"Job '{job['title'][:30]}...' scored {relevance_score:.2f} (REJECTED)")
+        
+        # Sort by relevance score (highest first)
+        filtered_jobs.sort(key=lambda x: x['relevance_score'], reverse=True)
+        
+        logger.info(f"Filtered {len(filtered_jobs)} public health jobs from {len(jobs)} total jobs")
+        
+        return filtered_jobs
+
+    def scrape_development_sites(self, search_term, sites=None):
+        """
+        Coordinate scraping across multiple job sites
+        
+        This method acts as a central coordinator that can easily be extended
+        to support multiple job data sources
+        """
+        if sites is None:
+            sites = ['reliefweb']  # Start with ReliefWeb, add more sources later
+        
+        all_jobs = []
+        
+        for site in sites:
+            try:
+                logger.info(f"Scraping from {site} for: '{search_term}'")
+                
+                if site == 'reliefweb':
+                    jobs = self.scrape_reliefweb_api(search_term)
+                else:
+                    logger.warning(f"Unknown site: {site}")
+                    continue
+                
+                all_jobs.extend(jobs)
+                
+                # Be respectful to APIs - delay between requests
+                time.sleep(1)
+                
+                logger.info(f"Retrieved {len(jobs)} jobs from {site}")
+                
+            except Exception as e:
+                logger.error(f"Failed to scrape {site}: {e}")
+                continue
+        
+        return all_jobs

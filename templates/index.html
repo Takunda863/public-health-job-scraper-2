@@ -3,178 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public Health Job Scraper</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Public Health Careers Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Background Image Container -->
+    <div class="background-container">
+        <div class="background-overlay"></div>
+    </div>
+
+    <!-- Main Content -->
     <div class="container">
-        <!-- Header Section -->
+        <!-- Header -->
         <header class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-search"></i> Public Health Job Scraper</h1>
-                <p class="subtitle">Find monitoring & evaluation positions in global health organizations</p>
-                <div class="header-stats">
-                    <span class="stat"><i class="fas fa-database"></i> Real-time Data</span>
-                    <span class="stat"><i class="fas fa-filter"></i> Smart Filtering</span>
-                    <span class="stat"><i class="fas fa-download"></i> Export Ready</span>
-                </div>
+            <div class="logo">
+                <i class="fas fa-user-md"></i>
+                <h1>Public Health Careers Hub</h1>
             </div>
+            <p class="tagline">Connecting Talent with Public Health Opportunities</p>
         </header>
 
-        <main class="main-content">
-            <!-- Search Section -->
-            <section class="search-section">
-                <div class="search-card">
-                    <h2><i class="fas fa-search"></i> Search Jobs</h2>
-                    <p class="search-description">Enter keywords separated by commas to find relevant public health positions</p>
-                    
-                    <div class="search-form">
-                        <input type="text" id="searchTerms" 
-                               placeholder="monitoring and evaluation, public health, M&E officer, health data"
-                               class="search-input"
-                               value="monitoring and evaluation, public health, M&E officer">
-                        <button onclick="searchJobs()" class="search-btn">
-                            <i class="fas fa-search"></i> Search Jobs
-                        </button>
-                    </div>
-                    
-                    <!-- Advanced Filters -->
-                    <div class="filters">
-                        <div class="filter-group">
-                            <h3><i class="fas fa-sliders-h"></i> Filters</h3>
-                            
-                            <div class="filter-item">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="recentOnly">
-                                    <span class="checkmark"></span>
-                                    Only show jobs from last 24h
-                                </label>
-                            </div>
-                            
-                            <div class="filter-item">
-                                <label for="minRelevance" class="slider-label">
-                                    Minimum relevance: <span id="relevanceValue">30%</span>
-                                </label>
-                                <input type="range" id="minRelevance" min="0" max="100" value="30" class="relevance-slider">
-                                <div class="slider-labels">
-                                    <span>All Jobs</span>
-                                    <span>Highly Relevant</span>
-                                </div>
-                            </div>
-                            
-                            <div class="filter-item">
-                                <label for="maxJobs" class="slider-label">
-                                    Jobs per search: <span id="maxJobsValue">20</span>
-                                </label>
-                                <input type="range" id="maxJobs" min="5" max="50" value="20" class="jobs-slider">
-                                <div class="slider-labels">
-                                    <span>5</span>
-                                    <span>50</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-briefcase"></i>
                 </div>
-            </section>
-
-            <!-- Results Section -->
-            <section class="results-section" id="resultsSection" style="display: none;">
-                <div class="results-header">
-                    <div class="results-title">
-                        <h2 id="resultsTitle"><i class="fas fa-briefcase"></i> Search Results</h2>
-                        <div id="resultsSummary" class="results-summary"></div>
-                    </div>
-                    <div class="results-actions">
-                        <button onclick="downloadCSV()" class="download-btn">
-                            <i class="fas fa-file-csv"></i> CSV
-                        </button>
-                        <button onclick="downloadJSON()" class="download-btn">
-                            <i class="fas fa-file-code"></i> JSON
-                        </button>
-                        <button onclick="shareResults()" class="download-btn">
-                            <i class="fas fa-share"></i> Share
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Results Container -->
-                <div id="results" class="results-container"></div>
-                
-                <!-- No Results Message -->
-                <div id="noResults" class="no-results" style="display: none;">
-                    <div class="no-results-content">
-                        <i class="fas fa-search fa-3x"></i>
-                        <h3>No Jobs Found</h3>
-                        <p>Try adjusting your search criteria:</p>
-                        <ul>
-                            <li>Use broader terms like "public health" or "health"</li>
-                            <li>Remove the "24h only" filter</li>
-                            <li>Lower the minimum relevance threshold</li>
-                            <li>Try different search combinations</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Loading Indicator -->
-            <div id="loading" class="loading" style="display: none;">
-                <div class="loading-content">
-                    <div class="spinner"></div>
-                    <h3>Searching for Jobs</h3>
-                    <p id="loadingText">Connecting to job databases...</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
+                <div class="stat-info">
+                    <h3 id="jobs-count">0</h3>
+                    <p>Available Positions</p>
                 </div>
             </div>
-
-            <!-- Features Section -->
-            <section class="features-section">
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <i class="fas fa-bolt"></i>
-                        <h3>Real-time Data</h3>
-                        <p>Live job postings from ReliefWeb's humanitarian database</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fas fa-brain"></i>
-                        <h3>Smart Filtering</h3>
-                        <p>AI-powered relevance scoring for public health positions</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fas fa-clock"></i>
-                        <h3>Recent Jobs</h3>
-                        <p>Filter to show only positions posted in the last 24 hours</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fas fa-download"></i>
-                        <h3>Export Data</h3>
-                        <p>Download results in CSV or JSON format for analysis</p>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
                 </div>
-            </section>
-        </main>
-
-        <footer class="footer">
-            <div class="footer-content">
-                <p>
-                    <i class="fas fa-code"></i> 
-                    Built with FastAPI & Docker | 
-                    <i class="fas fa-database"></i> 
-                    Data from ReliefWeb API |
-                    <i class="fas fa-heart"></i> 
-                    Open Source
-                </p>
-                <div class="footer-links">
-                    <a href="/api/docs" target="_blank">API Documentation</a>
-                    <a href="/health" target="_blank">Health Status</a>
-                    <a href="https://github.com/yourusername/public-health-job-scraper" target="_blank">GitHub</a>
+                <div class="stat-info">
+                    <h3 id="organizations-count">0</h3>
+                    <p>Partner Organizations</p>
                 </div>
             </div>
-        </footer>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="locations-count">0</h3>
+                    <p>Locations Worldwide</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search and Filter Section -->
+        <section class="search-section">
+            <div class="search-box">
+                <div class="search-input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Search for public health positions (epidemiologist, health policy, nurse, etc.)">
+                </div>
+                <button id="search-btn" class="search-button">
+                    <i class="fas fa-search"></i>
+                    Find Jobs
+                </button>
+            </div>
+            
+            <div class="filter-options">
+                <select id="country-filter">
+                    <option value="">All Countries</option>
+                    <option value="zimbabwe">Zimbabwe</option>
+                    <option value="usa">United States</option>
+                    <option value="uk">United Kingdom</option>
+                    <option value="canada">Canada</option>
+                    <option value="south africa">South Africa</option>
+                    <option value="switzerland">Switzerland</option>
+                </select>
+                
+                <select id="work-type-filter">
+                    <option value="">All Work Types</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="onsite">On-site</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Jobs Listing Section -->
+        <section class="jobs-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list-alt"></i> Current Public Health Opportunities</h2>
+                <div class="last-updated" id="last-updated">
+                    Last updated: Loading...
+                </div>
+            </div>
+            
+            <div class="jobs-container" id="jobs-container">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading public health opportunities...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features-section">
+            <h2>Why Choose Public Health Careers?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h3>Make an Impact</h3>
+                    <p>Contribute to community health and wellbeing through meaningful work that addresses critical health challenges and improves population health outcomes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Career Growth</h3>
+                    <p>Continuous learning opportunities in a rapidly evolving field with diverse career paths from research to policy implementation and emergency response.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe-americas"></i>
+                    </div>
+                    <h3>Global Opportunities</h3>
+                    <p>Work with international organizations and diverse communities worldwide, addressing health disparities and promoting health equity across borders.</p>
+                </div>
+            </div>
+        </section>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Public Health Careers Hub</h4>
+                <p>Your gateway to meaningful public health careers worldwide. Connecting passionate professionals with organizations making a difference in global health.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Information</h4>
+                <p><i class="fas fa-envelope"></i> moyotakundanashe@gmail.com</p>
+                <p><i class="fas fa-phone"></i> +263 788888563</p>
+                <p><i class="fas fa-map-marker-alt"></i> Zimbabwe</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 TMoyo. All rights reserved. Connecting talent with public health opportunities across Africa and beyond.</p>
+        </div>
+    </footer>
 
     <script src="/static/script.js"></script>
 </body>
