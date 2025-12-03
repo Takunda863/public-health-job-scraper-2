@@ -35,7 +35,6 @@ Thumbs.db
 README.md
 DEPLOYMENT.md
 *.rst
-*.txt
 
 # Logs
 *.log
@@ -60,3 +59,5 @@ test-local.sh
 .env
 .env.local
 .env.production
+
+# NOTE: requirements.txt is NOT excluded - it's needed for Docker!
