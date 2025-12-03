@@ -1,8 +1,12 @@
 [build]
 builder = "nixpacks"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "uvicorn main:app --host=0.0.0.0 --port=$PORT"
 
-[build.environment]
-PYTHON_VERSION = "3.12"
+[[services]]
+name = "web"
+[http]
+path = "/"
+port = 8000
